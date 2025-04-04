@@ -1,0 +1,64 @@
+import streamlit as st
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+st.set_page_config(page_title="📊 Match Response Variable Explorer", layout="wide")
+
+st.title("📈 BBBS Match Insights: Response Variables")
+
+@st.cache_data
+def load_data():
+    df = pd.read_csv("Training-Restated.xlsx - Sheet1.csv", low_memory=False, dtype=str)
+    df["Match Length"] = pd.to_numeric(df["Match Length"], errors="coerce")
+    df["Completion Date"] = pd.to_datetime(df["Completion Date"], errors="coerce")
+    df["Year"] = df["Completion Date"].dt.year
+    df["Big Age"] = pd.to_numeric(df["Big Age"], errors="coerce")
+    df["Same Gender"] = df["Big Gender"] == df["Little Gender"]
+    return df.dropna(subset=["Match Length", "Program Type"])
+
+df = load_data()
+
+# --- Filters ---
+st.sidebar.header("🔍 Filters")
+years = st.sidebar.multiselect("Filter by Year", sorted(df["Year"].dropna().unique()), default=sorted(df["Year"].dropna().unique()))
+programs = st.sidebar.multiselect("Filter by Program Type", df["Program Type"].unique(), default=df["Program Type"].unique())
+filtered_df = df[df["Year"].isin(years) & df["Program Type"].isin(programs)]
+
+# --- Response Variable Distributions ---
+st.subheader("📊 Match Length Distributions by Program Type")
+fig1, ax1 = plt.subplots(figsize=(10, 4))
+sns.boxplot(data=filtered_df, x="Program Type", y="Match Length", ax=ax1)
+plt.xticks(rotation=45)
+st.pyplot(fig1)
+
+st.subheader("📅 Match Length Distributions Over Time")
+fig2, ax2 = plt.subplots(figsize=(10, 4))
+sns.boxplot(data=filtered_df, x="Year", y="Match Length", ax=ax2)
+plt.xticks(rotation=45)
+st.pyplot(fig2)
+
+# --- Demographic Influences ---
+st.subheader("👥 Influence of Big/Little Demographics")
+fig3, ax3 = plt.subplots(figsize=(6, 4))
+sns.boxplot(x="Same Gender", y="Match Length", data=filtered_df, ax=ax3)
+plt.title("Match Length vs Same Gender")
+st.pyplot(fig3)
+
+# --- Alignment Analysis ---
+st.subheader("🤝 Demographic Alignment Effects")
+if "Big Gender" in df.columns and "Little Gender" in df.columns:
+    gender_group = filtered_df.groupby(["Big Gender", "Little Gender"])["Match Length"].mean().reset_index()
+    st.dataframe(gender_group.rename(columns={"Match Length": "Avg Match Length"}))
+
+# --- Insights ---
+st.subheader("💡 Insights: What Makes a Match Successful?")
+st.markdown("""
+- **Program Type Matters**: Certain programs foster longer-lasting matches.
+- **Yearly Trends**: Match duration has varied over time, suggesting operational or societal shifts.
+- **Gender Alignment**: Matches with the same gender may show different durations than mixed gender matches.
+- **Age & Demographics**: Big age and gender combos show patterns worth deeper exploration.
+""")
+
+st.markdown("---")
+st.caption("Crafted for MinneMUDAC ✨ | DataBells")
