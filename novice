@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+import plotly.express as px
 
 st.set_page_config(page_title="📊 Match Response Variable Explorer", layout="wide")
 
@@ -27,29 +28,31 @@ filtered_df = df[df["Year"].isin(years) & df["Program Type"].isin(programs)]
 
 # --- Response Variable Distributions ---
 st.subheader("📊 Match Length Distributions by Program Type")
-fig1, ax1 = plt.subplots(figsize=(10, 4))
-sns.boxplot(data=filtered_df, x="Program Type", y="Match Length", ax=ax1)
-plt.xticks(rotation=45)
-st.pyplot(fig1)
+fig1 = px.box(filtered_df, x="Program Type", y="Match Length", points="all", title="Match Length by Program Type")
+st.plotly_chart(fig1, use_container_width=True)
 
 st.subheader("📅 Match Length Distributions Over Time")
-fig2, ax2 = plt.subplots(figsize=(10, 4))
-sns.boxplot(data=filtered_df, x="Year", y="Match Length", ax=ax2)
-plt.xticks(rotation=45)
-st.pyplot(fig2)
+fig2 = px.box(filtered_df, x="Year", y="Match Length", points="all", title="Match Length Over Time")
+st.plotly_chart(fig2, use_container_width=True)
 
 # --- Demographic Influences ---
-st.subheader("👥 Influence of Big/Little Demographics")
-fig3, ax3 = plt.subplots(figsize=(6, 4))
-sns.boxplot(x="Same Gender", y="Match Length", data=filtered_df, ax=ax3)
-plt.title("Match Length vs Same Gender")
-st.pyplot(fig3)
+st.subheader("👥 Influence of Same Gender on Match Length")
+fig3 = px.box(filtered_df, x="Same Gender", y="Match Length", points="all", title="Match Length vs Same Gender")
+st.plotly_chart(fig3, use_container_width=True)
 
-# --- Alignment Analysis ---
-st.subheader("🤝 Demographic Alignment Effects")
+# --- Demographic Alignment Table ---
+st.subheader("🤝 Average Match Length by Gender Combination")
 if "Big Gender" in df.columns and "Little Gender" in df.columns:
     gender_group = filtered_df.groupby(["Big Gender", "Little Gender"])["Match Length"].mean().reset_index()
-    st.dataframe(gender_group.rename(columns={"Match Length": "Avg Match Length"}))
+    gender_group = gender_group.rename(columns={"Match Length": "Avg Match Length"})
+    st.dataframe(gender_group)
+
+    st.subheader("📊 Gender Combination Heatmap")
+    pivot = gender_group.pivot(index="Big Gender", columns="Little Gender", values="Avg Match Length")
+    fig4, ax4 = plt.subplots()
+    sns.heatmap(pivot, annot=True, fmt=".1f", cmap="YlGnBu", ax=ax4)
+    plt.title("Avg Match Length by Big/Little Gender")
+    st.pyplot(fig4)
 
 # --- Insights ---
 st.subheader("💡 Insights: What Makes a Match Successful?")
@@ -58,7 +61,10 @@ st.markdown("""
 - **Yearly Trends**: Match duration has varied over time, suggesting operational or societal shifts.
 - **Gender Alignment**: Matches with the same gender may show different durations than mixed gender matches.
 - **Age & Demographics**: Big age and gender combos show patterns worth deeper exploration.
+
+Use these tools to guide policy, training, and future match-making decisions.
 """)
 
 st.markdown("---")
-st.caption("Crafted for MinneMUDAC ✨ | DataBells")
+st.caption("Crafted with 💙 for MinneMUDAC | DataBells")
+
